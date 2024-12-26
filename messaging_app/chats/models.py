@@ -29,7 +29,7 @@ class Message(models.Model):
         default=uuid.uuid4,
         editable=False
     )
-    sender_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
     message_body = models.TextField(null=False)
     sent_at = models.DateTimeField(auto_now_add=True)
 
@@ -40,5 +40,5 @@ class Conversation(models.Model):
         default=uuid.uuid4,
         editable=False
     )
-    participants_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    participants = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
