@@ -89,3 +89,23 @@ class OffensiveLanguageMiddleware:
         if x_forwarded_for:
             return x_forwarded_for.split(",")[0]
         return request.META.get("REMOTE_ADDR")
+
+
+class RolePermissionMiddleware:
+    """
+    Middleware to restrict access to specific actions based on user roles.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Define the restricted paths or actions
+        restricted_paths = ["/admin-action/", "/moderator-action/"]  # Adjust to your app's URLs
+
+        # Check if the path is restricted
+        if any(request.path.startswith(path) for path in restricted_paths):
+            user = request.user
+            if not user.is_authenticated or not (user.is_admin or user.groups.filter(name="moderator").exists()):
+                return JsonResponse({"error": "Forbidden: You do not have the necessary permissions."}, status=403)
+        return self.get_response(request)
