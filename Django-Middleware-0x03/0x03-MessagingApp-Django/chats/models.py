@@ -29,9 +29,10 @@ class Message(models.Model):
         default=uuid.uuid4,
         editable=False
     )
-    sender = models.ForeignKey(User, on_delete=models.CASCADE)
-    message_body = models.TextField(null=False)
-    sent_at = models.DateTimeField(auto_now_add=True)
+    sender = models.ForeignKey(User, on_delete=models.CASCADE,related_name="sent messages")
+    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name="received_messages")
+    content = models.TextField(null=False)
+    timestamp = models.DateTimeField(auto_now_add=True)
 
 
 class Conversation(models.Model):
@@ -42,3 +43,11 @@ class Conversation(models.Model):
     )
     participants = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class Notification(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
+    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name="notifications")
+    content = models.CharField(max_length=255)
+    is_read = models.BooleanField(default=False)
+    timestamp = models.DateTimeField(auto_now_add=True)
