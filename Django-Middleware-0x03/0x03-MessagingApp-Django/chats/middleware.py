@@ -1,6 +1,6 @@
 import logging
 import datetime
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 
 
 # Setup logger
@@ -45,4 +45,47 @@ class RestrictAccessByTimeMiddleware:
         return self.get_response(request)
 
     
-        
+class OffensiveLanguageMiddleware:
+    """
+    Middleware to limit the number of messages sent by an IP address within a time window.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.ip_message_log = {}
+
+    def __call__(self, request):
+        if request.method == "POST" and "/messaging/" in request.path:  # Adjust the path as per your app
+            # Get the user's IP address
+            user_ip = self.get_client_ip(request)
+
+            # Initialize or update the IP log
+            now = datetime.now()
+            if user_ip not in self.ip_message_log:
+                self.ip_message_log[user_ip] = []
+
+            # Remove timestamps older than 1 minute
+            one_minute_ago = now - datetime.timedelta(minutes=1)
+            self.ip_message_log[user_ip] = [
+                timestamp for timestamp in self.ip_message_log[user_ip]
+                if timestamp > one_minute_ago
+            ]
+
+            # Check the message count within the last minute
+            if len(self.ip_message_log[user_ip]) >= 5:  # Limit of 5 messages per minute
+                return JsonResponse(
+                    {"error": "Message limit exceeded. Please wait before sending more messages."},
+                    status=429
+                )
+
+            self.ip_message_log[user_ip].append(now)
+        return self.get_response(request)
+
+    def get_client_ip(self, request):
+        """
+        Helper function to get the client IP address from the request.
+        """
+        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+        if x_forwarded_for:
+            return x_forwarded_for.split(",")[0]
+        return request.META.get("REMOTE_ADDR")
